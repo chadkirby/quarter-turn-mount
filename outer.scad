@@ -43,7 +43,7 @@ module cleatLargeCyl(h=1.5, inflate = 0) {
 }
 module cleatTabs(inflateX = 0, inflateY = 0, height = 1.5) {
     intersection() {
-        cleatLargeCyl(height, inflateX);
+        translate([0, 0, -1]) cleatLargeCyl(height + 1, inflateX);
         cube([100, 11 + inflateY, 100], center=true);
     }
 }
@@ -97,5 +97,5 @@ module insert() {
     cleat();
     indents(1);
 }
-
-translate([0,0,3]) insert();
+holderBody();
+*translate([0,0,3]) insert();
