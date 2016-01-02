@@ -7,6 +7,7 @@ desiredGapBetwComputerAndHandlebar = 6;
 computerDims = [12, 62, 42];
 offsetFromHandlebar = computerDims[1]/2 + desiredGapBetwComputerAndHandlebar;
 mountY = offsetFromHandlebar + handleBarD/2;
+shellD = 36;
 gap = 1;
 big = 1000;
 $fs = 1;
@@ -83,10 +84,8 @@ module fastenerAssembly() {
 module screws() {
     translateScrew(1) m4PanHeadScrew(10);
     translateScrew(-1) m4PanHeadScrew(10);
-    translate([1, 0, 3]) {
-        moveToIntermediate() rotate([-15, 5, 0]) rotate([0, 0, 180/6]) m4ButtonScrew(6);
-        translate([0, -1.5, 0]) moveToFar() rotate([15, 5, 0]) rotate([0, 0, 180/6]) m4ButtonScrew(6);
-    }
+        moveToIntermediate() rotate([-30, 0, 0]) rotate([0, 0, 180/6]) translate([1, 0, 1]) m4ButtonScrew(4.5);
+        translate([0, 0, 0]) moveToFar() rotate([30, 0, 0]) rotate([0, 0, 180/6]) translate([1, 0, 1]) m4ButtonScrew(4.5);
 }
 module ring() {
     hull() {
@@ -114,7 +113,7 @@ module botMount() {
 }
 
 module moveToOuter() {
-    translate([-armThickness - gap, 0, computerDims[2]/2 + 4])
+    translate([-armThickness - gap, 0, max(shellD/2, computerDims[2]/2 - width/2)])
         moveYToMountPoint()
             children();
 }
@@ -134,7 +133,7 @@ module holderAssembly() {
     difference() {
         hull() {
             outerShell();
-            translate([0, 0, width]) hull() {
+            *translate([0, 0, width/2]) hull() {
                 intermediatePoint();
                 farPoint();
             };
@@ -143,13 +142,16 @@ module holderAssembly() {
         screws();
     }
     moveAndRotateToOuter() bodyAdditions();
-    doveTail();
+    *doveTail();
 }
 module outerHolder() {
     moveAndRotateToOuter() holderBody();
 }
 module outerShell() {
     moveAndRotateToOuter() rotate([0,0,90]) shell(height = armThickness);
+}
+module outerHull() {
+    moveAndRotateToOuter() rotate([0,0,90]) cylinder(d=shellD + 0.5, h=100, center=true);
 }
 module moveToIntermediate() {
     translate([-armThickness/2 - gap, handleBarD/2 + offsetFromHandlebar - 11, 0]) children();
@@ -165,13 +167,18 @@ module farPoint() {
     translate([0, 0, -width/2]) moveToFar() cylinder(d=armThickness, h=width, center=false);
 }
 module mountArm() {
+    scaleUp = (shellD + 0.5)/shellD;
     difference() {
-        hull() {
-            intermediatePoint();
-            farPoint();
+        intersection() {
+            hull() {
+                intermediatePoint();
+                farPoint();
+            }
+            moveAndRotateToOuter() rotate([0, 0, 180/8]) cylinder(d=(shellD + width)/cos(180/8), $fn=8, h=100, center=true);
         }
         screws();
-        doveTail(0.8);
+        *doveTail(0.8);
+        outerHull();
     }
 }
 module topMount() {
@@ -185,6 +192,8 @@ module topMount() {
                 intermediatePoint();
             }
         }
+        outerHull();
+
         // make sure we can rotate the rflkt in and out
         translate([-6, 0, 0]) moveToOuter() {
             rotate([0, 90, 0]) cylinder(
@@ -198,7 +207,7 @@ module topMount() {
 
     mountArm();
 }
-rotate([0, 180, 0]) {
+rotate([0, 0, 0]) {
     botMount();
     topMount();
     *holderAssembly();
