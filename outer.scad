@@ -13,8 +13,8 @@ module index(inflate = 0) {
     }
 }
 
-module shell(inflate=0) {
-    cylinder(d=36 + inflate, h=10, center=false, $fn=60);
+module shell(inflate=0, height = 10) {
+    cylinder(d=36 + inflate, h=height, center=false, $fn=60);
 }
 module bodyCutouts() {
     // form the lip that holds the cleat tabs
