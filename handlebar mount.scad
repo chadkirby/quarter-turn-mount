@@ -1,7 +1,8 @@
 use <outer.scad>
 handleBarD = 32.2;
-thick = 3;
+thick = 2.5;
 width = 12;
+direction = -1;
 armThickness = 12;
 desiredGapBetwComputerAndHandlebar = 6;
 computerDims = [12, 62, 42];
@@ -33,17 +34,19 @@ module m4PanHeadScrew(length = 20) {
     translate([-length/2, 0, 0]) rotate([0, 90, 0]) screw(
         headD = 9.3,
         headLen = 100,
-        nutFlat = 7.5,
+        nutFlat = 7.25,
         throughHoleD = 5,
         nutLen = 100,
         throughLen = length
     );
 }
 module m4ButtonScrew(length = 6) {
+    // translate([0, 0, direction == 1 ? 0 : 5])
+    // rotate([0, direction == 1 ? 0 : 180, 0])
     screw(
         headD = 8,
         headLen = 15,
-        nutFlat = 7.5,
+        nutFlat = 7.25,
         throughHoleD = 5,
         nutLen = 15,
         throughLen = length
@@ -79,11 +82,11 @@ module screwHolder(direction = 1) {
 
 module fastenerAssembly() {
     screwHolder(1);
-    screwHolder(-1);
+    rotate([0, 0, 90]) screwHolder(-1);
 }
 module screws() {
     translateScrew(1) m4PanHeadScrew(10);
-    translateScrew(-1) m4PanHeadScrew(10);
+    rotate([0, 180, 90]) translateScrew(-1) m4PanHeadScrew(10);
         moveToIntermediate() rotate([-30, 0, 0]) rotate([0, 0, 180/6]) translate([1, 0, 1]) m4ButtonScrew(4.5);
         translate([0, 0, 0]) moveToFar() rotate([30, 0, 0]) rotate([0, 0, 180/6]) translate([1, 0, 1]) m4ButtonScrew(4.5);
 }
@@ -104,7 +107,14 @@ module cutoutHandlebarAndScrews() {
 module getHalf(direction=1) {
     intersection() {
         children();
-        translate([direction * (big/2 + gap), 0, 0]) cube([big, big, big], center=true);
+        if (direction == -1) {
+            difference() {
+                cube([big, big, big], center=true);
+                translate([-gap, -gap, -big/2]) cube([big, big, big], center=false);
+            }
+        } else {
+            translate([direction * (big/2 + gap), (big/2 + gap), 0]) cube([big, big, big], center=true);
+        }
     }
 }
 
@@ -168,7 +178,7 @@ module farPoint() {
 }
 module mountArm() {
     scaleUp = (shellD + 0.5)/shellD;
-    difference() {
+    rotate([0, 0, 0]) difference() {
         intersection() {
             hull() {
                 intermediatePoint();
@@ -210,7 +220,7 @@ module topMount() {
 rotate([0, 0, 0]) {
     botMount();
     topMount();
-    *holderAssembly();
+    holderAssembly();
 }
 translate([10, 25, armThickness/2 + 1]) rotate([0, -90, 90])
     holderAssembly();
