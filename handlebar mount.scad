@@ -66,7 +66,7 @@ module handlebar() {
     cylinder(d=handleBarD, h=big, center=true, $fn=60);
 }
 module computer() {
-    translate([-computerDims[0]/2, 0, 0]) moveToOuter() cube(computerDims, center=true);
+    translate([direction * (-computerDims[0]/2), 0, 0]) moveToOuter() cube(computerDims, center=true);
 }
 module translateScrew(direction = 1) {
     translate([0,direction*(width/2 + handleBarD/2), 0]) children();
@@ -79,16 +79,19 @@ module moveYToMountPoint() {
 module screwHolder(direction = 1) {
     translateScrew(direction) rotate([0,-90,0]) rotate([0,0,180/8]) cylinder(d=width/cos(180/8), $fn=8, h=20, center=true);
 }
-
+module rotateFastener() {
+    rotate([0, 0, direction * 72]) children();
+}
 module fastenerAssembly() {
     screwHolder(1);
-    rotate([0, 0, 90]) screwHolder(-1);
+    rotateFastener() screwHolder(-1);
 }
 module screws() {
-    translateScrew(1) m4PanHeadScrew(10);
-    rotate([0, 180, 90]) translateScrew(-1) m4PanHeadScrew(10);
-        moveToIntermediate() rotate([-30, 0, 0]) rotate([0, 0, 180/6]) translate([1, 0, 1]) m4ButtonScrew(4.5);
-        translate([0, 0, 0]) moveToFar() rotate([30, 0, 0]) rotate([0, 0, 180/6]) translate([1, 0, 1]) m4ButtonScrew(4.5);
+    rotate([0, direction == 1 ? 0 : 180, 0]) translateScrew(1) m4PanHeadScrew(10);
+    rotateFastener() rotate([0, 180, 0]) translateScrew(-1) m4PanHeadScrew(10);
+
+    moveToIntermediate() rotate([-30, 0, 0]) rotate([0, 0, 180/6]) translate([direction * 1.5, 0, 1]) m4ButtonScrew(4.5);
+    translate([0, 0, 0]) moveToFar() rotate([30, 0, 0]) rotate([0, 0, 180/6]) translate([direction * 1.5, 0, 1]) m4ButtonScrew(4.5);
 }
 module ring() {
     hull() {
@@ -103,32 +106,48 @@ module cutoutHandlebarAndScrews() {
         screws();
     }
 }
-
-module getHalf(direction=1) {
+module getBottom() {
     intersection() {
         children();
-        if (direction == -1) {
-            difference() {
-                cube([big, big, big], center=true);
-                translate([-gap, -gap, -big/2]) cube([big, big, big], center=false);
+        //translate([-(big/2 + gap), (big/2 + gap), 0]) cube([big, big, big], center=true);
+        hull() {
+            rotate([0, 180, 0]) {
+                moveToIntermediateX() translate([0, width/2, 0]) cylinder(d=width, h=100, center=true);
+                moveToIntermediateX() translate([0, 100, 0]) cylinder(d=width, h=100, center=true);
+                translate([100, 0, 0]) cylinder(d=width, h=100, center=true);
             }
-        } else {
-            translate([direction * (big/2 + gap), (big/2 + gap), 0]) cube([big, big, big], center=true);
+            rotateFastener() translate([0, -1000, 0]) cylinder(d=0.1, h=100, center=true);
+        }
+    }
+}
+module getTop() {
+    intersection() {
+        children();
+        difference() {
+            cube([big, big, big], center=true);
+            hull() {
+                rotate([0, 180, 0]) translate([width/2 - gap, 0, 0]) {
+                    translate([0, width/2, 0]) cylinder(d=width, h=100, center=true);
+                    translate([0, 100, 0]) cylinder(d=width, h=100, center=true);
+                    translate([100, 0, 0]) cylinder(d=width, h=100, center=true);
+                }
+                rotateFastener() translate([0, -75, 0]) cylinder(r=gap, h=100, center=true);
+            }
         }
     }
 }
 
 module botMount() {
-    getHalf(1) cutoutHandlebarAndScrews() ring();
+    getBottom() cutoutHandlebarAndScrews() ring();
 }
 
 module moveToOuter() {
-    translate([-armThickness - gap, 0, max(shellD/2, computerDims[2]/2 - width/2)])
+    translate([direction * (-armThickness - gap), 0, max(shellD/2, computerDims[2]/2 - width/2)])
         moveYToMountPoint()
             children();
 }
 module moveAndRotateToOuter(scaleA=[1,1,1]) {
-        moveToOuter() rotate([0, 90, 0]) rotate([0,0,90])
+        moveToOuter() rotate([0, direction * 90, 0]) rotate([0,0,90])
                 scale(scaleA) children();
 }
 module doveTail(inflate = 0) {
@@ -141,13 +160,7 @@ module doveTail(inflate = 0) {
 }
 module holderAssembly() {
     difference() {
-        hull() {
-            outerShell();
-            *translate([0, 0, width/2]) hull() {
-                intermediatePoint();
-                farPoint();
-            };
-        }
+        outerShell();
         moveAndRotateToOuter() bodyCutouts();
         screws();
     }
@@ -163,8 +176,11 @@ module outerShell() {
 module outerHull() {
     moveAndRotateToOuter() rotate([0,0,90]) cylinder(d=shellD + 0.5, h=100, center=true);
 }
+module moveToIntermediateX() {
+    translate([direction * (-armThickness/2 - gap), 0, 0]) children();
+}
 module moveToIntermediate() {
-    translate([-armThickness/2 - gap, handleBarD/2 + offsetFromHandlebar - 11, 0]) children();
+    moveToIntermediateX() translate([0, handleBarD/2 + offsetFromHandlebar - 11, 0]) children();
 }
 module intermediatePoint() {
     moveToIntermediate() cylinder(d=armThickness, h=width, center=true);
@@ -193,11 +209,11 @@ module mountArm() {
 }
 module topMount() {
     difference() {
-        cutoutHandlebarAndScrews() getHalf(-1) {
+        cutoutHandlebarAndScrews() getTop() {
             ring();
             // bridge from the ring to the intermediatePoint
             hull() {
-                translate([-armThickness/2 - gap, 0, 0]) translateScrew(1) rotate([0,-90,0]) cylinder(d=armThickness, h=armThickness, center=true);
+                moveToIntermediateX() translateScrew(1) rotate([0,-90,0]) cylinder(d=armThickness, h=armThickness, center=true);
 ;
                 intermediatePoint();
             }
@@ -205,8 +221,8 @@ module topMount() {
         outerHull();
 
         // make sure we can rotate the rflkt in and out
-        translate([-6, 0, 0]) moveToOuter() {
-            rotate([0, 90, 0]) cylinder(
+        translate([direction * -6, 0, 0]) moveAndRotateToOuter() {
+            cylinder(
                 d = 1 + sqrt(computerDims[1] * computerDims[1] + computerDims[2] * computerDims[2]),
                 h=12,
                 center=true
@@ -220,8 +236,8 @@ module topMount() {
 rotate([0, 0, 0]) {
     botMount();
     topMount();
-    holderAssembly();
+    *holderAssembly();
 }
-translate([10, 25, armThickness/2 + 1]) rotate([0, -90, 90])
+translate([0, direction * 25, armThickness/2 + 1]) rotate([0, direction * -90, 90])
     holderAssembly();
 translate([-42, 45, -4]) rotate([180, 0, 0]) insert();
