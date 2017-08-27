@@ -1,10 +1,11 @@
 use <outer.scad>
 handleBarD = 32.2;
 thick = 2.5;
-width = 12;
+width = 14;
 direction = -1; // -1 puts the computer to the left of the mount arm; 1 would put the computer to the right, if it weren't broken
 armThickness = 12;
-desiredGapBetwComputerAndHandlebar = 8;
+yoffset = 12;
+desiredGapBetwComputerAndHandlebar = 20;
 computerDims = [12, 62, 42];
 offsetFromHandlebar = computerDims[1]/2 + desiredGapBetwComputerAndHandlebar;
 mountY = offsetFromHandlebar + handleBarD/2;
@@ -89,9 +90,11 @@ module fastenerAssembly() {
 module screws() {
     rotate([0, direction == 1 ? 0 : 180, 0]) translateScrew(1) m4PanHeadScrew(10);
     rotateFastener() rotate([0, 180, 0]) translateScrew(-1) m4PanHeadScrew(10);
-
-    moveToIntermediate() rotate([-30, 0, 0]) rotate([0, 0, 180/6]) translate([0, 0, 1]) m4ButtonScrew(4.5);
-    translate([0, 0, 0]) moveToFar() rotate([30, 0, 0]) rotate([0, 0, 180/6]) translate([0, 0, 1]) m4ButtonScrew(4.5);
+    
+    translate([0, 0, yoffset]) {
+      moveToIntermediate() rotate([-30, 0, 0]) rotate([0, 0, 180/6]) translate([0, 0, 1 - yoffset]) m4ButtonScrew(4.5 + yoffset);
+      translate([0, 0, 0]) moveToFar() rotate([30, 0, 0]) rotate([0, 0, 180/6]) translate([0, 0, 1]) m4ButtonScrew(4.5);
+    }
 }
 module ring() {
     hull() {
@@ -159,11 +162,11 @@ module doveTail(inflate = 0) {
     }
 }
 module holderAssembly() {
-    translate([direction * -1.5, 0, 0]) {
+    translate([direction * -1.5, 0, yoffset]) {
         difference() {
             outerShell();
             moveAndRotateToOuter() bodyCutouts();
-            translate([direction * 1.5, 0, 0])screws();
+            translate([direction * 1.5, 0, -yoffset]) screws();
         }
         moveAndRotateToOuter() bodyAdditions();
     }
@@ -175,7 +178,7 @@ module outerShell() {
     moveAndRotateToOuter() rotate([0,0,90]) shell(height = armThickness);
 }
 module outerHull() {
-    moveAndRotateToOuter() rotate([0,0,90]) cylinder(d=shellD + 0.5, h=100, center=true);
+    translate([0, 0, yoffset]) moveAndRotateToOuter() rotate([0,0,90]) cylinder(d=shellD + 0.5, h=100, center=true);
 }
 module moveToIntermediateX() {
     translate([direction * (-armThickness/2 - gap), 0, 0]) children();
@@ -196,7 +199,7 @@ module farPoint() {
 module mountArm() {
     scaleUp = (shellD + 0.5)/shellD;
     rotate([0, 0, 0]) difference() {
-        intersection() {
+        translate([0, 0, yoffset]) intersection() {
             hull() {
                 intermediatePoint();
                 farPoint();
@@ -214,9 +217,13 @@ module topMount() {
             ring();
             // bridge from the ring to the intermediatePoint
             hull() {
-                moveToIntermediateX() translateScrew(1) rotate([0,-90,0]) cylinder(d=armThickness, h=armThickness, center=true);
+                moveToIntermediateX() translateScrew(1) rotate([0,-90,0]) cylinder(d=width, h=armThickness, center=true);
 ;
                 intermediatePoint();
+            }
+            hull() {;
+                intermediatePoint();
+                mountArm();
             }
         }
         outerHull();
@@ -231,14 +238,12 @@ module topMount() {
         }
         computer(); // just for visualization
     }
-
-    mountArm();
 }
 rotate([0, 0, 0]) {
     botMount();
     topMount();
-    *holderAssembly();
+    holderAssembly();
 }
-translate([0, direction * 25, armThickness/2 + 2.5]) rotate([0, direction * -90, 90])
+*translate([0, direction * 25, armThickness/2 + 2.5]) rotate([0, direction * -90, 90])
     holderAssembly();
 translate([-42, 45, -4]) rotate([180, 0, 0]) insert();
